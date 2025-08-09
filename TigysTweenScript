@@ -12,7 +12,6 @@ frame.Size = UDim2.new(0, 320, 0, 180)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.BackgroundColor3 = Color3.fromRGB(20, 40, 120)
-frame.Draggable = true
 frame.Parent = screenGui
 
 local title = Instance.new("TextLabel")
@@ -23,6 +22,41 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 24
 title.TextColor3 = Color3.fromRGB(200, 230, 255)
 title.Parent = frame
+
+-- Make the frame draggable
+local UserInputService = game:GetService("UserInputService")
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
 
 local function createButton(text, posY)
     local btn = Instance.new("TextButton")
@@ -89,7 +123,7 @@ followBaseBtn.MouseButton1Click:Connect(function()
         local distance = direction.Magnitude
 
         if distance < 1 then
-            break -- Close enough, stop following
+            break
         end
 
         direction = direction.Unit
@@ -98,7 +132,6 @@ followBaseBtn.MouseButton1Click:Connect(function()
 
         local newPos = currentPos + direction * speed * wait()
 
-        -- Float 5 studs higher than base Y
         local floatHeight = baseCFrame.Position.Y + 5
         newPos = Vector3.new(newPos.X, floatHeight, newPos.Z)
 
