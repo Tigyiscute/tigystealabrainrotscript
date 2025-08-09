@@ -1,0 +1,112 @@
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TigySpecialTweenGui"
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 180)
+frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20, 40, 120)
+frame.Draggable = true
+frame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "Tigy’s Special Tween"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 24
+title.TextColor3 = Color3.fromRGB(200, 230, 255)
+title.Parent = frame
+
+local function createButton(text, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.8, 0, 0, 40)
+    btn.Position = UDim2.new(0.1, 0, posY, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 100, 220)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 18
+    btn.TextColor3 = Color3.fromRGB(240, 250, 255)
+    btn.Parent = frame
+    return btn
+end
+
+local setBaseBtn = createButton("Set Base", 0.4)
+local followBaseBtn = createButton("Follow Base", 0.65)
+
+local baseCFrame = nil
+local isFollowing = false
+
+setBaseBtn.MouseButton1Click:Connect(function()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        baseCFrame = player.Character.HumanoidRootPart.CFrame
+        setBaseBtn.Text = "Base Set!"
+        wait(1.5)
+        setBaseBtn.Text = "Set Base"
+    end
+end)
+
+followBaseBtn.MouseButton1Click:Connect(function()
+    if not baseCFrame then
+        followBaseBtn.Text = "Set Base First!"
+        wait(1.5)
+        followBaseBtn.Text = "Follow Base"
+        return
+    end
+
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") then
+        followBaseBtn.Text = "No Character!"
+        wait(1.5)
+        followBaseBtn.Text = "Follow Base"
+        return
+    end
+
+    if isFollowing then
+        isFollowing = false
+        followBaseBtn.Text = "Follow Base"
+        return
+    end
+
+    isFollowing = true
+    followBaseBtn.Text = "Following..."
+
+    local hrp = player.Character.HumanoidRootPart
+
+    local speed = 50
+    local maxSpeed = 55
+
+    while isFollowing and baseCFrame and player.Character and hrp.Parent do
+        local currentPos = hrp.Position
+        local targetPos = baseCFrame.Position
+
+        local direction = (targetPos - currentPos)
+        local distance = direction.Magnitude
+
+        if distance < 1 then
+            break -- Close enough, stop following
+        end
+
+        direction = direction.Unit
+
+        speed = math.min(speed + 1, maxSpeed)
+
+        local newPos = currentPos + direction * speed * wait()
+
+        -- Float 5 studs higher than base Y
+        local floatHeight = baseCFrame.Position.Y + 5
+        newPos = Vector3.new(newPos.X, floatHeight, newPos.Z)
+
+        hrp.CFrame = CFrame.new(newPos)
+
+        wait(0.03)
+    end
+
+    isFollowing = false
+    followBaseBtn.Text = "Follow Base"
+end)
