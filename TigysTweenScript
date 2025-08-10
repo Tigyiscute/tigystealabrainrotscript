@@ -111,8 +111,8 @@ followBaseBtn.MouseButton1Click:Connect(function()
 
     local hrp = player.Character.HumanoidRootPart
 
-    local speed = 85
-    local maxSpeed = 95
+    local speed = 75
+    local maxSpeed = 80
 
     while isFollowing and baseCFrame and player.Character and hrp.Parent do
         local currentPos = hrp.Position
