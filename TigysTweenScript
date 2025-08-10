@@ -1,5 +1,4 @@
 local Players = game:GetService("Players")
-
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -71,8 +70,8 @@ local function createButton(text, posY)
     return btn
 end
 
-local setBaseBtn = createButton("Set Base", 0.4)
-local followBaseBtn = createButton("Follow Base", 0.65)
+local setBaseBtn = createButton("Set Base", 0.5)
+local followBaseBtn = createButton("Follow Base", 0.75)
 
 local baseCFrame = nil
 local isFollowing = false
@@ -112,8 +111,8 @@ followBaseBtn.MouseButton1Click:Connect(function()
 
     local hrp = player.Character.HumanoidRootPart
 
-    local speed = 50
-    local maxSpeed = 55
+    local speed = 85
+    local maxSpeed = 95
 
     while isFollowing and baseCFrame and player.Character and hrp.Parent do
         local currentPos = hrp.Position
