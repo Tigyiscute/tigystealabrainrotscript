@@ -1,0 +1,242 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TigysSpecialESP"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Main Frame (Draggable)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 280, 0, 120)
+frame.Position = UDim2.new(0.5, -140, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(10, 40, 120)
+frame.BackgroundTransparency = 0
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+frame.AnchorPoint = Vector2.new(0.5, 0)
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -20, 0, 40)
+title.Position = UDim2.new(0, 10, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "Tigy’s Special ESP"
+title.TextColor3 = Color3.fromRGB(180, 220, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 24
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+-- Toggle Button Frame
+local toggleFrame = Instance.new("Frame")
+toggleFrame.Size = UDim2.new(1, -20, 0, 40)
+toggleFrame.Position = UDim2.new(0, 10, 0, 60)
+toggleFrame.BackgroundTransparency = 1
+toggleFrame.Parent = frame
+
+-- Label for Toggle
+local toggleLabel = Instance.new("TextLabel")
+toggleLabel.Size = UDim2.new(0.6, 0, 1, 0)
+toggleLabel.BackgroundTransparency = 1
+toggleLabel.Text = "Player ESP"
+toggleLabel.TextColor3 = Color3.fromRGB(200, 220, 255)
+toggleLabel.Font = Enum.Font.Gotham
+toggleLabel.TextSize = 20
+toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+toggleLabel.Parent = toggleFrame
+
+-- Toggle Button
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0.35, 0, 0.7, 0)
+toggleButton.Position = UDim2.new(0.65, 0, 0.15, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(40, 80, 180)
+toggleButton.AutoButtonColor = false
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 18
+toggleButton.TextColor3 = Color3.fromRGB(200, 220, 255)
+toggleButton.Text = "OFF"
+toggleButton.Name = "ToggleButton"
+toggleButton.Parent = toggleFrame
+toggleButton.AnchorPoint = Vector2.new(0, 0.5)
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 16)
+toggleCorner.Parent = toggleButton
+
+local toggleOn = false
+
+-- ESP helper tables
+local highlights = {}
+local nameTags = {}
+
+local function createNameTag(character, playerName)
+    if not character then return nil end
+    local head = character:FindFirstChild("Head")
+    if not head then return nil end
+
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "TigyNameTag"
+    billboardGui.Adornee = head
+    billboardGui.Size = UDim2.new(0, 150, 0, 30)
+    billboardGui.StudsOffset = Vector3.new(0, 2.5, 0)
+    billboardGui.AlwaysOnTop = true
+    billboardGui.Parent = head
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.fromRGB(180, 220, 255)
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextSize = 20
+    textLabel.Text = playerName
+    textLabel.Parent = billboardGui
+
+    return billboardGui
+end
+
+local function addESPToPlayer(plr)
+    if plr == player then return end
+
+    local character = plr.Character
+    if not character then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    if not highlights[plr] then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "TigyHighlight"
+        highlight.Adornee = character
+        highlight.FillColor = Color3.fromRGB(40, 120, 255)
+        highlight.OutlineColor = Color3.fromRGB(20, 60, 130)
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.Parent = character
+        highlights[plr] = highlight
+    end
+
+    if not nameTags[plr] then
+        local nameTag = createNameTag(character, plr.Name)
+        if nameTag then
+            nameTags[plr] = nameTag
+        end
+    end
+end
+
+local function removeESPFromPlayer(plr)
+    if highlights[plr] then
+        highlights[plr]:Destroy()
+        highlights[plr] = nil
+    end
+    if nameTags[plr] then
+        nameTags[plr]:Destroy()
+        nameTags[plr] = nil
+    end
+end
+
+local function enableESP()
+    for _, plr in pairs(Players:GetPlayers()) do
+        addESPToPlayer(plr)
+    end
+end
+
+local function disableESP()
+    for plr, _ in pairs(highlights) do
+        removeESPFromPlayer(plr)
+    end
+end
+
+toggleButton.MouseButton1Click:Connect(function()
+    toggleOn = not toggleOn
+    if toggleOn then
+        toggleButton.Text = "ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(30, 150, 255)
+        enableESP()
+    else
+        toggleButton.Text = "OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(40, 80, 180)
+        disableESP()
+    end
+end)
+
+Players.PlayerAdded:Connect(function(plr)
+    if toggleOn then
+        plr.CharacterAdded:Connect(function(char)
+            wait(0.1)
+            addESPToPlayer(plr)
+        end)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    removeESPFromPlayer(plr)
+end)
+
+for _, plr in pairs(Players:GetPlayers()) do
+    plr.CharacterAdded:Connect(function(char)
+        if toggleOn then
+            wait(0.1)
+            addESPToPlayer(plr)
+        end
+    end)
+end
+
+-- ===== DRAGGABLE LOGIC =====
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        -- Prevent dragging if clicking the toggle button itself
+        if UserInputService:GetFocusedTextBox() then return end
+        local mousePos = UserInputService:GetMouseLocation()
+        local togglePos = toggleButton.AbsolutePosition
+        local toggleSize = toggleButton.AbsoluteSize
+        local mouseX = mousePos.X
+        local mouseY = mousePos.Y
+        -- Check if mouse is over toggle button (to avoid drag conflict)
+        if mouseX >= togglePos.X and mouseX <= togglePos.X + toggleSize.X and
+           mouseY >= togglePos.Y and mouseY <= togglePos.Y + toggleSize.Y then
+            return
+        end
+
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+        frame.Position = newPos
+    end
+end)
