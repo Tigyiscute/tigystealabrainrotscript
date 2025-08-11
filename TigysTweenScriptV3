@@ -90,7 +90,7 @@ local followBaseV4Desc = createLabel("Fastest Tween", 0.88)
 
 -- Vars
 local baseCFrame = nil
-local isFollowingV2, isFollowingV3, isFollowingV4 = false, false, false
+_G.isFollowingV2, _G.isFollowingV3, _G.isFollowingV4 = false, false, false
 
 -- Set Base
 setBaseBtn.MouseButton1Click:Connect(function()
@@ -154,5 +154,5 @@ end)
 
 -- V4 (Fastest)
 followBaseV4Btn.MouseButton1Click:Connect(function()
-    followBase(200, 220, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
+    followBase(150, 175, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
 end)
