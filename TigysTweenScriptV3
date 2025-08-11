@@ -1,0 +1,158 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TigySpecialTweenGui"
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 280) -- taller to fit V4 button
+frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20, 40, 120)
+frame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "Tigy’s Special Tween V2"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 24
+title.TextColor3 = Color3.fromRGB(200, 230, 255)
+title.Parent = frame
+
+-- Make draggable
+local UserInputService = game:GetService("UserInputService")
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+local function createButton(text, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.8, 0, 0, 40)
+    btn.Position = UDim2.new(0.1, 0, posY, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 100, 220)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 18
+    btn.TextColor3 = Color3.fromRGB(240, 250, 255)
+    btn.Parent = frame
+    return btn
+end
+
+local function createLabel(text, posY)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.8, 0, 0, 20)
+    lbl.Position = UDim2.new(0.1, 0, posY, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 14
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    lbl.TextWrapped = true
+    lbl.Parent = frame
+    return lbl
+end
+
+-- Buttons + labels
+local setBaseBtn = createButton("Set Base", 0.12)
+local followBaseV2Btn = createButton("Follow Base V2", 0.32)
+local followBaseV2Desc = createLabel("this might be patched.", 0.42)
+local followBaseV3Btn = createButton("Follow Base V3", 0.55)
+local followBaseV3Desc = createLabel("this might be patched.", 0.65)
+local followBaseV4Btn = createButton("Follow Base V4", 0.78)
+local followBaseV4Desc = createLabel("Fastest Tween", 0.88)
+
+-- Vars
+local baseCFrame = nil
+local isFollowingV2, isFollowingV3, isFollowingV4 = false, false, false
+
+-- Set Base
+setBaseBtn.MouseButton1Click:Connect(function()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        baseCFrame = player.Character.HumanoidRootPart.CFrame
+        setBaseBtn.Text = "Base Set!"
+        wait(1.5)
+        setBaseBtn.Text = "Set Base"
+    end
+end)
+
+-- Follow template function
+local function followBase(speedStart, speedMax, stateVarName, btn, label)
+    if not baseCFrame then
+        btn.Text = "Set Base First!"
+        wait(1.5)
+        btn.Text = label
+        return
+    end
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") then
+        btn.Text = "No Character!"
+        wait(1.5)
+        btn.Text = label
+        return
+    end
+    if _G[stateVarName] then
+        _G[stateVarName] = false
+        btn.Text = label
+        return
+    end
+    _G[stateVarName] = true
+    btn.Text = "Following..."
+    local hrp = player.Character.HumanoidRootPart
+    local speed = speedStart
+    while _G[stateVarName] and baseCFrame and player.Character and hrp.Parent do
+        local currentPos = hrp.Position
+        local targetPos = baseCFrame.Position
+        local direction = (targetPos - currentPos)
+        if direction.Magnitude < 1 then break end
+        direction = direction.Unit
+        speed = math.min(speed + 1, speedMax)
+        local newPos = currentPos + direction * speed * wait()
+        local floatHeight = baseCFrame.Position.Y + 5
+        newPos = Vector3.new(newPos.X, floatHeight, newPos.Z)
+        hrp.CFrame = CFrame.new(newPos)
+        wait(0.03)
+    end
+    _G[stateVarName] = false
+    btn.Text = label
+end
+
+-- V2
+followBaseV2Btn.MouseButton1Click:Connect(function()
+    followBase(85, 95, "isFollowingV2", followBaseV2Btn, "Follow Base V2")
+end)
+
+-- V3
+followBaseV3Btn.MouseButton1Click:Connect(function()
+    followBase(105, 110, "isFollowingV3", followBaseV3Btn, "Follow Base V3")
+end)
+
+-- V4 (Fastest)
+followBaseV4Btn.MouseButton1Click:Connect(function()
+    followBase(200, 220, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
+end)
