@@ -154,5 +154,5 @@ end)
 
 -- V4 (Fastest)
 followBaseV4Btn.MouseButton1Click:Connect(function()
-    followBase(125, 145, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
+    followBase(175, 175, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
 end)
