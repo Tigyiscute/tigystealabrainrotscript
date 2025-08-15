@@ -182,5 +182,5 @@ end)
 
 -- V4 (Fastest - Pathfinding with speed 200)
 followBaseV4Btn.MouseButton1Click:Connect(function()
-    followBase(200, 200, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
+    followBase(175, 175, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
 end)
