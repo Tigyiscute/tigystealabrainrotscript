@@ -1,29 +1,66 @@
+-- Services
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
+-- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TigySpecialTweenGui"
-screenGui.Parent = playerGui
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- Circle toggle button
+local circleBtn = Instance.new("ImageButton")
+circleBtn.Size = UDim2.new(0, 80, 0, 80)
+circleBtn.Position = UDim2.new(0, 20, 0.5, -40)
+circleBtn.BackgroundTransparency = 1
+circleBtn.Image = "rbxassetid://95609095181189"
+circleBtn.Parent = screenGui
+
+local circleStroke = Instance.new("UIStroke")
+circleStroke.Thickness = 3
+circleStroke.Parent = circleBtn
+
+-- Rainbow animation for circle
+local hue = 0
+RunService.RenderStepped:Connect(function()
+	hue = (hue + 0.005) % 1
+	circleStroke.Color = Color3.fromHSV(hue, 1, 1)
+end)
+
+-- Frame UI
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 280) -- taller to fit V4 button
+frame.Size = UDim2.new(0, 320, 0, 280)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.BackgroundColor3 = Color3.fromRGB(20, 40, 120)
+frame.Visible = false -- start hidden, toggle with circleBtn
+frame.Active = true
+frame.Draggable = true
 frame.Parent = screenGui
 
+local frameStroke = Instance.new("UIStroke")
+frameStroke.Thickness = 3
+frameStroke.Parent = frame
+
+-- Rainbow animation for frame
+RunService.RenderStepped:Connect(function()
+	frameStroke.Color = Color3.fromHSV(hue, 1, 1)
+end)
+
+-- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 40)
 title.BackgroundTransparency = 1
-title.Text = "Tigy’s Special Tween V2"
+title.Text = "Tigy's Tween"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 24
 title.TextColor3 = Color3.fromRGB(200, 230, 255)
 title.Parent = frame
 
 -- Make draggable
-local UserInputService = game:GetService("UserInputService")
 local dragging, dragInput, dragStart, startPos
 local function update(input)
 	local delta = input.Position - dragStart
@@ -52,107 +89,110 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
+-- Button creator
 local function createButton(text, posY)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.8, 0, 0, 40)
-    btn.Position = UDim2.new(0.1, 0, posY, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 100, 220)
-    btn.Text = text
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 18
-    btn.TextColor3 = Color3.fromRGB(240, 250, 255)
-    btn.Parent = frame
-    return btn
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0.8, 0, 0, 40)
+	btn.Position = UDim2.new(0.1, 0, posY, 0)
+	btn.BackgroundColor3 = Color3.fromRGB(50, 100, 220)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamSemibold
+	btn.TextSize = 18
+	btn.TextColor3 = Color3.fromRGB(240, 250, 255)
+	btn.Parent = frame
+	return btn
 end
 
+-- Label creator
 local function createLabel(text, posY)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0.8, 0, 0, 20)
-    lbl.Position = UDim2.new(0.1, 0, posY, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 14
-    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-    lbl.TextWrapped = true
-    lbl.Parent = frame
-    return lbl
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(0.8, 0, 0, 20)
+	lbl.Position = UDim2.new(0.1, 0, posY, 0)
+	lbl.BackgroundTransparency = 1
+	lbl.Text = text
+	lbl.Font = Enum.Font.Gotham
+	lbl.TextSize = 14
+	lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+	lbl.TextWrapped = true
+	lbl.Parent = frame
+	return lbl
 end
 
 -- Buttons + labels
 local setBaseBtn = createButton("Set Base", 0.12)
-local followBaseV2Btn = createButton("Follow Base V2", 0.32)
+local followBaseV2Btn = createButton("Tween To Base V2", 0.32)
 local followBaseV2Desc = createLabel("this might be patched.", 0.42)
-local followBaseV3Btn = createButton("Follow Base V3", 0.55)
+local followBaseV3Btn = createButton("Tween To Base V3", 0.55)
 local followBaseV3Desc = createLabel("this might be patched.", 0.65)
-local followBaseV4Btn = createButton("Follow Base V4", 0.78)
+local followBaseV4Btn = createButton("Tween To Base V4", 0.78)
 local followBaseV4Desc = createLabel("Fastest Tween", 0.88)
 
--- Vars
+-- Toggle frame with circle button
+circleBtn.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+-- Variables
 local baseCFrame = nil
 _G.isFollowingV2, _G.isFollowingV3, _G.isFollowingV4 = false, false, false
 
--- Set Base
+-- Set Base function
 setBaseBtn.MouseButton1Click:Connect(function()
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        baseCFrame = player.Character.HumanoidRootPart.CFrame
-        setBaseBtn.Text = "Base Set!"
-        wait(1.5)
-        setBaseBtn.Text = "Set Base"
-    end
+	if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+		baseCFrame = player.Character.HumanoidRootPart.CFrame
+		setBaseBtn.Text = "Base Set!"
+		wait(1.5)
+		setBaseBtn.Text = "Set Base"
+	end
 end)
 
--- Follow template function
+-- Follow function template
 local function followBase(speedStart, speedMax, stateVarName, btn, label)
-    if not baseCFrame then
-        btn.Text = "Set Base First!"
-        wait(1.5)
-        btn.Text = label
-        return
-    end
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") then
-        btn.Text = "No Character!"
-        wait(1.5)
-        btn.Text = label
-        return
-    end
-    if _G[stateVarName] then
-        _G[stateVarName] = false
-        btn.Text = label
-        return
-    end
-    _G[stateVarName] = true
-    btn.Text = "Following..."
-    local hrp = player.Character.HumanoidRootPart
-    local speed = speedStart
-    while _G[stateVarName] and baseCFrame and player.Character and hrp.Parent do
-        local currentPos = hrp.Position
-        local targetPos = baseCFrame.Position
-        local direction = (targetPos - currentPos)
-        if direction.Magnitude < 1 then break end
-        direction = direction.Unit
-        speed = math.min(speed + 1, speedMax)
-        local newPos = currentPos + direction * speed * wait()
-        local floatHeight = baseCFrame.Position.Y + 5
-        newPos = Vector3.new(newPos.X, floatHeight, newPos.Z)
-        hrp.CFrame = CFrame.new(newPos)
-        wait(0.03)
-    end
-    _G[stateVarName] = false
-    btn.Text = label
+	if not baseCFrame then
+		btn.Text = "Set Base First!"
+		wait(1.5)
+		btn.Text = label
+		return
+	end
+	if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") then
+		btn.Text = "No Character!"
+		wait(1.5)
+		btn.Text = label
+		return
+	end
+	if _G[stateVarName] then
+		_G[stateVarName] = false
+		btn.Text = label
+		return
+	end
+	_G[stateVarName] = true
+	btn.Text = "Following..."
+	local hrp = player.Character.HumanoidRootPart
+	local speed = speedStart
+	while _G[stateVarName] and baseCFrame and player.Character and hrp.Parent do
+		local currentPos = hrp.Position
+		local targetPos = baseCFrame.Position
+		local direction = (targetPos - currentPos)
+		if direction.Magnitude < 1 then break end
+		direction = direction.Unit
+		speed = math.min(speed + 1, speedMax)
+		local newPos = currentPos + direction * speed * wait()
+		local floatHeight = baseCFrame.Position.Y + 5
+		newPos = Vector3.new(newPos.X, floatHeight, newPos.Z)
+		hrp.CFrame = CFrame.new(newPos)
+		wait(0.03)
+	end
+	_G[stateVarName] = false
+	btn.Text = label
 end
 
--- V2
+-- Connect follow buttons
 followBaseV2Btn.MouseButton1Click:Connect(function()
-    followBase(85, 95, "isFollowingV2", followBaseV2Btn, "Follow Base V2")
+	followBase(85, 95, "isFollowingV2", followBaseV2Btn, "Follow Base V2")
 end)
-
--- V3
 followBaseV3Btn.MouseButton1Click:Connect(function()
-    followBase(105, 110, "isFollowingV3", followBaseV3Btn, "Follow Base V3")
+	followBase(105, 110, "isFollowingV3", followBaseV3Btn, "Follow Base V3")
 end)
-
--- V4 (Fastest)
 followBaseV4Btn.MouseButton1Click:Connect(function()
-    followBase(175, 175, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
+	followBase(175, 175, "isFollowingV4", followBaseV4Btn, "Follow Base V4")
 end)
