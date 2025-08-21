@@ -1,177 +1,121 @@
--- Services
+--// Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
-local PathfindingService = game:GetService("PathfindingService")
 
-local LocalPlayer = Players.LocalPlayer
-local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+--// ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TigyAutoSteal"
+screenGui.Parent = playerGui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-
-local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-
-
-local circleBtn = Instance.new("ImageButton")
-circleBtn.Size = UDim2.new(0,80,0,80)
-circleBtn.Position = UDim2.new(0,20,0.5,-40)
-circleBtn.BackgroundTransparency = 1
-circleBtn.Image = "rbxassetid://95609095181189"
-circleBtn.Parent = screenGui
-
-local circleStroke = Instance.new("UIStroke")
-circleStroke.Thickness = 3
-circleStroke.Parent = circleBtn
-
-
-local hue = 0
-RunService.RenderStepped:Connect(function()
-	hue = (hue + 0.005) % 1
-	circleStroke.Color = Color3.fromHSV(hue, 1, 1)
-end)
-
--- Frame
+--// Main Frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,260,0,100)
-frame.Position = UDim2.new(0.5,-130,0.5,-50)
-frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
-frame.BackgroundTransparency = 0.2
-frame.Visible = false
+frame.Size = UDim2.new(0, 300, 0, 180)
+frame.Position = UDim2.new(0.5, -150, 0.5, -90)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
-local frameStroke = Instance.new("UIStroke")
-frameStroke.Thickness = 3
-frameStroke.Parent = frame
+-- Frame Styling
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = frame
 
-RunService.RenderStepped:Connect(function()
-	frameStroke.Color = Color3.fromHSV(hue, 1, 1)
-end)
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Thickness = 2
+uiStroke.Color = Color3.fromRGB(0, 170, 255)
+uiStroke.Parent = frame
 
+-- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,40)
+title.Size = UDim2.new(1, -20, 0, 40)
+title.Position = UDim2.new(0, 10, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "Tigy's Auto Steal"
-title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Text = "Tigy’s Auto Steal"
+title.TextColor3 = Color3.fromRGB(0, 200, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 20
+title.TextSize = 22
+title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = frame
 
+-- Execute Button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0.5, -25)
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+button.Text = "Execute"
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 20
+button.Parent = frame
 
-local AutoStealOn = false
-local BasePos
+-- Round Button
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 10)
+btnCorner.Parent = button
 
-local AutoStealBtn = Instance.new("TextButton")
-AutoStealBtn.Size = UDim2.new(0.8,0,0,40)
-AutoStealBtn.Position = UDim2.new(0.1,0,0,50)
-AutoStealBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-AutoStealBtn.TextColor3 = Color3.fromRGB(255,255,255)
-AutoStealBtn.Font = Enum.Font.GothamBold
-AutoStealBtn.TextSize = 18
-AutoStealBtn.Text = "Auto Steal: Off"
-AutoStealBtn.Parent = frame
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Thickness = 2
+btnStroke.Color = Color3.fromRGB(255, 255, 255)
+btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+btnStroke.Parent = button
 
-local BtnCorner = Instance.new("UICorner")
-BtnCorner.CornerRadius = UDim.new(0,10)
-BtnCorner.Parent = AutoStealBtn
+--// Instruction Prompt
+local promptFrame = Instance.new("Frame")
+promptFrame.Size = UDim2.new(0, 400, 0, 200)
+promptFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+promptFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+promptFrame.BorderSizePixel = 0
+promptFrame.Visible = false
+promptFrame.Parent = screenGui
 
+local promptCorner = Instance.new("UICorner")
+promptCorner.CornerRadius = UDim.new(0, 12)
+promptCorner.Parent = promptFrame
 
-circleBtn.MouseButton1Click:Connect(function()
-	frame.Visible = not frame.Visible
+local promptStroke = Instance.new("UIStroke")
+promptStroke.Thickness = 2
+promptStroke.Color = Color3.fromRGB(0, 170, 255)
+promptStroke.Parent = promptFrame
+
+local promptText = Instance.new("TextLabel")
+promptText.Size = UDim2.new(1, -20, 1, -20)
+promptText.Position = UDim2.new(0, 10, 0, 10)
+promptText.BackgroundTransparency = 1
+promptText.Text = "Instructions:\n\n1. Open Chili Hub and go to Player tab\n2. Enable Speed Boost and set it to 90 speed (must have Grapple Hook)\n3. Turn on Auto Steal and you're done!"
+promptText.TextColor3 = Color3.fromRGB(255, 255, 255)
+promptText.Font = Enum.Font.GothamSemibold
+promptText.TextSize = 18
+promptText.TextWrapped = true
+promptText.TextYAlignment = Enum.TextYAlignment.Top
+promptText.Parent = promptFrame
+
+--// Blur Effect
+local blur = Instance.new("BlurEffect")
+blur.Size = 0
+blur.Parent = Lighting
+
+--// Button Action
+button.MouseButton1Click:Connect(function()
+    -- Run both scripts
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua"))()
+    loadstring(game:HttpGet("https://pastefy.app/mRkXMG3f/raw"))()
+
+    -- Blur in
+    TweenService:Create(blur, TweenInfo.new(0.5), {Size = 24}):Play()
+
+    -- Show Prompt
+    promptFrame.Visible = true
+
+    -- Wait 5s then remove
+    task.delay(5, function()
+        -- Blur out
+        TweenService:Create(blur, TweenInfo.new(0.5), {Size = 0}):Play()
+        promptFrame.Visible = false
+    end)
 end)
-
-
-AutoStealBtn.MouseButton1Click:Connect(function()
-    AutoStealOn = not AutoStealOn
-    AutoStealBtn.Text = "Auto Steal: " .. (AutoStealOn and "On" or "Off")
-    AutoStealBtn.BackgroundColor3 = AutoStealOn and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 50)
-end)
-
-
-local function GetCharacter()
-    local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local HRP = Char:WaitForChild("HumanoidRootPart")
-    return Char, HRP
-end
-
-local function FindSafePosition(FromPos, ToPos)
-    local RayParams = RaycastParams.new()
-    RayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-    RayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    local HorizontalDir = Vector3.new(ToPos.X - FromPos.X, 0, ToPos.Z - FromPos.Z)
-    local Ray = workspace:Raycast(FromPos, HorizontalDir, RayParams)
-    if Ray then
-        local SafeDist = math.max(1, Ray.Distance - 2)
-        return Vector3.new(
-            FromPos.X + HorizontalDir.Unit.X * SafeDist,
-            ToPos.Y,
-            FromPos.Z + HorizontalDir.Unit.Z * SafeDist
-        )
-    else
-        return ToPos
-    end
-end
-
-local function TeleportMethod(TargetPos)
-    local Char, HRP = GetCharacter()
-    TargetPos = Vector3.new(TargetPos.X, TargetPos.Y + 8, TargetPos.Z)
-    local BV = Instance.new("BodyVelocity")
-    BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    BV.Velocity = (TargetPos - HRP.Position).Unit * 100
-    BV.P = 2000
-    BV.Name = "FlightPower"
-    BV.Parent = HRP
-    repeat RunService.Heartbeat:Wait() until (HRP.Position - TargetPos).Magnitude < 4
-    if BV then BV:Destroy() end
-end
-
-task.spawn(function()
-    local Char, HRP = GetCharacter()
-    repeat RunService.Heartbeat:Wait() until HRP.Parent and HRP.Position.Magnitude > 0
-    task.wait(0.5)
-    local Forward = HRP.CFrame.LookVector * 10
-    HRP.CFrame = HRP.CFrame + Forward
-    BasePos = HRP.Position
-end)
-
-local function SetupPrompt(Prompt)
-    if Prompt.ActionText == "Steal" then
-        Prompt.Triggered:Connect(function(Plr)
-            if AutoStealOn and Plr == LocalPlayer and BasePos then
-                local Char, HRP = GetCharacter()
-                local Path = PathfindingService:CreatePath({
-                    AgentRadius = 2,
-                    AgentHeight = 5,
-                    AgentCanJump = true,
-                    AgentJumpHeight = 10,
-                    AgentMaxSlope = 45,
-                })
-                Path:ComputeAsync(HRP.Position, BasePos)
-                local Waypoints = Path:GetWaypoints()
-                for _, Wp in ipairs(Waypoints) do
-                    local SafePos = FindSafePosition(HRP.Position, Wp.Position)
-                    TeleportMethod(SafePos)
-                end
-            end
-        end)
-    end
-end
-
-for _, Prompt in pairs(workspace:GetDescendants()) do
-    if Prompt:IsA("ProximityPrompt") then
-        SetupPrompt(Prompt)
-    end
-end
-
-workspace.DescendantAdded:Connect(function(Desc)
-    if Desc:IsA("ProximityPrompt") then
-        SetupPrompt(Desc)
-    end
-end)
-
-wait(3)
-
-loadstring(game:HttpGet("https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua"))()
