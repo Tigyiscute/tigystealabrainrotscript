@@ -1,144 +1,343 @@
+
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TigySpecialTweenGui"
-screenGui.Parent = playerGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 180)
-frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundColor3 = Color3.fromRGB(20, 40, 120)
-frame.Parent = screenGui
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundTransparency = 1
-title.Text = "Tigy’s Special Tween"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 24
-title.TextColor3 = Color3.fromRGB(200, 230, 255)
-title.Parent = frame
-
--- Make the frame draggable
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local dragging, dragInput, dragStart, startPos
+local PathfindingService = game:GetService("PathfindingService")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Backpack = LocalPlayer:WaitForChild("Backpack")
+local Humanoid = Character:WaitForChild("Humanoid")
 
-local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local Net = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"))
+local UseItem = Net:RemoteEvent("UseItem")
+local RemoteArg = 1.5
+local ToolName = "Grapple Hook"
 
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
+local humanoid = game.Players.LocalPlayer.Character.Humanoid
 
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
+humanoid.HealthChanged:Connect(function(health)
+    humanoid.Health = 100
 end)
 
-frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		dragInput = input
-	end
-end)
 
-UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		update(input)
-	end
-end)
+local Net = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"))
+local UseItem = Net:RemoteEvent("UseItem")
 
-local function createButton(text, posY)
+local StopTeleportFast = false
+local BasePos
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+local BasePosition = HumanoidRootPart.Position
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TigyTweensUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 250, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -90)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BackgroundTransparency = 0.15
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.Text = "Tigy's Tweens"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.TextColor3 = Color3.fromRGB(0, 255, 120)
+Title.Parent = MainFrame
+
+local function MakeButton(name, posY)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.8, 0, 0, 40)
-    btn.Position = UDim2.new(0.1, 0, posY, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 100, 220)
-    btn.Text = text
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 18
-    btn.TextColor3 = Color3.fromRGB(240, 250, 255)
-    btn.Parent = frame
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, posY)
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    btn.BorderSizePixel = 0
+    btn.Parent = MainFrame
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
     return btn
 end
 
-local setBaseBtn = createButton("Set Base", 0.5)
-local followBaseBtn = createButton("Follow Base", 0.75)
+local TaserTweenButton = MakeButton("Taser Tween: Off", 40)
+local GrappleTweenButton = MakeButton("Speed: Off", 90)
 
-local baseCFrame = nil
-local isFollowing = false
+local function GetCharacter()
+	local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local HRP = Char:WaitForChild("HumanoidRootPart")
+	local Hum = Char:FindFirstChildOfClass("Humanoid")
+	return Char, HRP, Hum
+end
 
-setBaseBtn.MouseButton1Click:Connect(function()
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        baseCFrame = player.Character.HumanoidRootPart.CFrame
-        setBaseBtn.Text = "Base Set!"
-        wait(1.5)
-        setBaseBtn.Text = "Set Base"
+task.spawn(function()
+	local _, HRP = GetCharacter()
+	repeat RunService.Heartbeat:Wait() until HRP.Parent and HRP.Position.Magnitude > 0
+	local behindPosition = HRP.Position + HRP.CFrame.LookVector * 30
+
+	BasePos = behindPosition
+end)
+
+local LastTaserUse = 0
+local TaserCooldown = 1
+
+local function SafeUseTaser(target)
+	local Now = tick()
+	if Now - LastTaserUse >= TaserCooldown then
+		LastTaserUse = Now
+		UseItem:FireServer(target)
+	else
+		warn("Taser on cooldown! Wait", math.ceil(TaserCooldown - (Now - LastTaserUse)), "seconds")
+	end
+end
+
+
+local workspace = game:GetService("Workspace")
+
+local RunService = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local workspace = game:GetService("Workspace")
+
+local TweenService = game:GetService("TweenService")
+
+local GrappleToolName = "Grapple Hook"
+
+
+
+
+local function physicsTween(targetPos, speed, callback)
+    local Char, hrp, Hum = GetCharacter()
+    if not hrp then return end
+    local distance = (hrp.Position - targetPos).Magnitude
+    local duration = distance / speed
+    local bp = Instance.new("BodyPosition")
+    bp.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bp.P = 10000
+    bp.D = 10
+    bp.Position = hrp.Position
+    bp.Parent = hrp
+    local startTime = tick()
+    local startPos = hrp.Position
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if StopTeleportFast then
+            conn:Disconnect()
+            bp:Destroy()
+            return
+        end
+        local elapsed = tick() - startTime
+        local alpha = math.clamp(elapsed / duration, 0, 1)
+        bp.Position = startPos:Lerp(targetPos, alpha)
+        if alpha >= 1 then
+            conn:Disconnect()
+            bp:Destroy()
+            if callback then callback() end
+        end
+    end)
+end
+
+local function moveAlongPath(targetPos, speed, callback)
+    local Char, hrp, Hum = GetCharacter()
+    if not Char or not hrp or not Hum then return end
+
+    local path = PathfindingService:CreatePath({
+        AgentRadius = 2,
+        AgentHeight = 5,
+        AgentCanJump = true,
+        AgentJumpHeight = 10,
+        AgentMaxSlope = 45,
+    })
+
+    -- Generate path, retry with small offsets if blocked
+    local function computePath(target)
+        local tries = 5
+        for i = 1, tries do
+            path:ComputeAsync(hrp.Position, target)
+            if path.Status == Enum.PathStatus.Success then
+                return true
+            end
+            target = target + Vector3.new(math.random(-10,10),0,math.random(-10,10))
+        end
+        return false
+    end
+
+    if not computePath(targetPos) then
+        if callback then callback() end
+        return
+    end
+
+    local waypoints = path:GetWaypoints()
+    local index = 1
+
+    local function moveNext()
+        if StopTeleportFast or index > #waypoints then
+            if callback then callback() end
+            return
+        end
+
+        local wp = waypoints[index]
+        local goal = wp.Position
+
+        -- Always move using physicsTween even if blocked
+        physicsTween(goal, 400, function()
+            index = index + 1
+            moveNext()
+        end)
+    end
+
+    moveNext()
+end
+
+
+
+
+function RagdollTeleport(PromptObject, speed)
+    local Char, hrp, Hum = GetCharacter()
+    if not Char or not hrp or not Hum then return end
+    StopTeleportFast = false
+    task.wait(0.5)
+    local Backpack = LocalPlayer:FindFirstChild("Backpack")
+    if Backpack then
+        local Taser = Backpack:FindFirstChild("Taser Gun")
+        if Taser then
+            pcall(function() Hum:EquipTool(Taser) end)
+            if SafeUseTaser then
+                pcall(function() SafeUseTaser(hrp) end)
+            end
+        end
+    end
+    local targetX = Vector3.new(-400, hrp.Position.Y, hrp.Position.Z)
+    moveAlongPath(targetX, 350, function()
+        if BasePos and not StopTeleportFast then
+            moveAlongPath(BasePos + Vector3.new(0, 5, 0), 350)
+        end
+    end)
+end
+
+
+
+RunService.Heartbeat:Connect(function()
+    if Character and HumanoidRootPart then
+        BasePosition = HumanoidRootPart.Position
     end
 end)
 
-followBaseBtn.MouseButton1Click:Connect(function()
-    if not baseCFrame then
-        followBaseBtn.Text = "Set Base First!"
-        wait(1.5)
-        followBaseBtn.Text = "Follow Base"
-        return
+
+TaserTweenButton.MouseButton1Click:Connect(function()
+	if TaserTweenButton.Text == "Taser Tween: Off" then
+		if not BasePos then return end
+		StopTeleportFast = false
+		TaserTweenButton.Text = "Cancel Teleport"
+	else
+		StopTeleportFast = true
+		TaserTweenButton.Text = "Taser Tween: Off"
+	end
+end)
+
+local speedActive = false
+local spamActive = false
+local speedConn
+local spamThread
+
+GrappleTweenButton.MouseButton1Click:Connect(function()
+-- Toggle Speed
+speedActive = not speedActive
+GrappleTweenButton.Text = speedActive and "Speed: On" or "Speed: Off"
+
+if speedActive then
+    speedConn = RunService.Heartbeat:Connect(function()
+        local speed = 150
+        local direction = HumanoidRootPart.CFrame.LookVector
+        HumanoidRootPart.AssemblyLinearVelocity = direction * speed
+    end)
+else
+    if speedConn then
+        speedConn:Disconnect()
+        speedConn = nil
     end
+    HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+end
 
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") then
-        followBaseBtn.Text = "No Character!"
-        wait(1.5)
-        followBaseBtn.Text = "Follow Base"
-        return
-    end
+-- Toggle Grapple Spam
+spamActive = not spamActive
 
-    if isFollowing then
-        isFollowing = false
-        followBaseBtn.Text = "Follow Base"
-        return
-    end
 
-    isFollowing = true
-    followBaseBtn.Text = "Following..."
-
-    local hrp = player.Character.HumanoidRootPart
-
-    local speed = 75
-    local maxSpeed = 80
-
-    while isFollowing and baseCFrame and player.Character and hrp.Parent do
-        local currentPos = hrp.Position
-        local targetPos = baseCFrame.Position
-
-        local direction = (targetPos - currentPos)
-        local distance = direction.Magnitude
-
-        if distance < 1 then
-            break
+if spamActive then
+    spamThread = task.spawn(function()
+        while spamActive do
+            local tool = Character:FindFirstChild(ToolName) or Backpack:FindFirstChild(ToolName)
+            if tool then
+                Humanoid:EquipTool(tool)
+                task.wait(0.2) -- short equip delay
+                UseItem:FireServer(RemoteArg)
+                task.wait(0.3) -- unequip delay
+                Humanoid:UnequipTools()
+            end
+            task.wait(0.5) -- cycle every 0.5s
         end
+    end)
+else
+    spamActive = false
+end
 
-        direction = direction.Unit
+end)
 
-        speed = math.min(speed + 1, maxSpeed)
+local ActivePrompt = nil
+local HeartbeatConnection = nil
 
-        local newPos = currentPos + direction * speed * wait()
+ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
+	if player ~= LocalPlayer then return end
+	if prompt.ActionText ~= "Steal" then return end -- only triggers for "Steal"
 
-        local floatHeight = baseCFrame.Position.Y + 5
-        newPos = Vector3.new(newPos.X, floatHeight, newPos.Z)
+	ActivePrompt = prompt
+	local HoldStartTime = tick()
+	if HeartbeatConnection then
+		HeartbeatConnection:Disconnect()
+	end
+	HeartbeatConnection = RunService.Heartbeat:Connect(function()
+		if not ActivePrompt then return end
+		local heldTime = tick() - HoldStartTime
+		if heldTime >= (prompt.HoldDuration - 0.5) then
+			-- DO NOT cancel the prompt; just trigger RagdollTeleport
+			ActivePrompt = nil
+			if HeartbeatConnection then
+				HeartbeatConnection:Disconnect()
+				HeartbeatConnection = nil
+			end
+			if BasePos then
+				RagdollTeleport(BasePos)
+			end
+		end
+	end)
+end)
 
-        hrp.CFrame = CFrame.new(newPos)
-
-        wait(0.03)
-    end
-
-    isFollowing = false
-    followBaseBtn.Text = "Follow Base"
+ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt, player)
+	if player ~= LocalPlayer then return end
+	ActivePrompt = nil
+	if HeartbeatConnection then
+		HeartbeatConnection:Disconnect()
+		HeartbeatConnection = nil
+	end
 end)
