@@ -1,0 +1,177 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Backpack = LocalPlayer:WaitForChild("Backpack")
+local Humanoid = Character:WaitForChild("Humanoid")
+
+local Net = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"))
+local UseItem = Net:RemoteEvent("UseItem")
+
+-- Always heal humanoid
+Humanoid.HealthChanged:Connect(function()
+    Humanoid.Health = 100
+end)
+
+local StopTeleportFast = false
+local BasePos
+local BasePosition = HumanoidRootPart.Position
+
+--// UI
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TigyTweensUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 250, 0, 160)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -80)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BackgroundTransparency = 0.15
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.Text = "Tigy's Tweens"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.TextColor3 = Color3.fromRGB(0, 255, 120)
+Title.Parent = MainFrame
+
+local function MakeButton(name, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, posY)
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    btn.BorderSizePixel = 0
+    btn.Parent = MainFrame
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+    return btn
+end
+
+local TaserTeleportButton = MakeButton("Taser Teleport", 60)
+
+--// Helpers
+local function GetCharacter()
+	local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local HRP = Char:WaitForChild("HumanoidRootPart")
+	local Hum = Char:FindFirstChildOfClass("Humanoid")
+	return Char, HRP, Hum
+end
+
+task.spawn(function()
+	local _, HRP = GetCharacter()
+	repeat RunService.Heartbeat:Wait() until HRP.Parent and HRP.Position.Magnitude > 0
+	local behindPosition = HRP.Position + HRP.CFrame.LookVector * 30
+	BasePos = behindPosition
+end)
+
+local LastTaserUse = 0
+local TaserCooldown = 1
+local function SafeUseTaser(target)
+	local Now = tick()
+	if Now - LastTaserUse >= TaserCooldown then
+		LastTaserUse = Now
+		UseItem:FireServer(target)
+	end
+end
+
+--// Step Teleport
+local function StepTeleportToBase(stepSize)
+    local Char, hrp, Hum = GetCharacter()
+    if not Char or not hrp or not BasePos then return end
+
+    StopTeleportFast = false
+
+    -- Equip taser first
+    local Backpack = LocalPlayer:FindFirstChild("Backpack")
+    if Backpack then
+        local Taser = Backpack:FindFirstChild("Taser Gun")
+        if Taser then
+            pcall(function() Hum:EquipTool(Taser) end)
+            pcall(function() SafeUseTaser(hrp) end)
+        end
+    end
+
+    -- Teleport in steps
+    task.spawn(function()
+        local target = BasePos
+        local distance = (hrp.Position - target).Magnitude
+        local direction = (target - hrp.Position).Unit
+
+        while distance > stepSize and not StopTeleportFast do
+            hrp.CFrame = CFrame.new(hrp.Position + direction * stepSize)
+            task.wait(0.1)
+            distance = (hrp.Position - target).Magnitude
+            direction = (target - hrp.Position).Unit
+        end
+
+        if not StopTeleportFast then
+            hrp.CFrame = CFrame.new(target + Vector3.new(0, 5, 0))
+        end
+    end)
+end
+
+-- Button Logic
+TaserTeleportButton.MouseButton1Click:Connect(function()
+	if not BasePos then return end
+	StopTeleportFast = false
+	StepTeleportToBase(385) -- step size updated
+end)
+
+--// Proximity Prompt Trigger -> auto Taser Teleport
+local ActivePrompt = nil
+local HeartbeatConnection = nil
+
+ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
+	if player ~= LocalPlayer then return end
+	if prompt.ActionText ~= "Steal" then return end
+
+	ActivePrompt = prompt
+	local HoldStartTime = tick()
+	if HeartbeatConnection then
+		HeartbeatConnection:Disconnect()
+	end
+	HeartbeatConnection = RunService.Heartbeat:Connect(function()
+		if not ActivePrompt then return end
+		local heldTime = tick() - HoldStartTime
+		if heldTime >= (prompt.HoldDuration - 0.5) then
+			ActivePrompt = nil
+			if HeartbeatConnection then
+				HeartbeatConnection:Disconnect()
+				HeartbeatConnection = nil
+			end
+			if BasePos then
+				StopTeleportFast = false
+				StepTeleportToBase(385) -- step size updated
+			end
+		end
+	end)
+end)
+
+ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt, player)
+	if player ~= LocalPlayer then return end
+	ActivePrompt = nil
+	if HeartbeatConnection then
+		HeartbeatConnection:Disconnect()
+		HeartbeatConnection = nil
+	end
+end)
