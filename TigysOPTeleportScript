@@ -137,41 +137,13 @@ TaserTeleportButton.MouseButton1Click:Connect(function()
 	StepTeleportToBase(385) -- step size updated
 end)
 
---// Proximity Prompt Trigger -> auto Taser Teleport
-local ActivePrompt = nil
-local HeartbeatConnection = nil
-
-ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
+--// Proximity Prompt Trigger -> auto Taser Teleport (ONLY after full completion)
+ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 	if player ~= LocalPlayer then return end
 	if prompt.ActionText ~= "Steal" then return end
 
-	ActivePrompt = prompt
-	local HoldStartTime = tick()
-	if HeartbeatConnection then
-		HeartbeatConnection:Disconnect()
-	end
-	HeartbeatConnection = RunService.Heartbeat:Connect(function()
-		if not ActivePrompt then return end
-		local heldTime = tick() - HoldStartTime
-		if heldTime >= (prompt.HoldDuration - 0.5) then
-			ActivePrompt = nil
-			if HeartbeatConnection then
-				HeartbeatConnection:Disconnect()
-				HeartbeatConnection = nil
-			end
-			if BasePos then
-				StopTeleportFast = false
-				StepTeleportToBase(385) -- step size updated
-			end
-		end
-	end)
-end)
-
-ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt, player)
-	if player ~= LocalPlayer then return end
-	ActivePrompt = nil
-	if HeartbeatConnection then
-		HeartbeatConnection:Disconnect()
-		HeartbeatConnection = nil
+	if BasePos then
+		StopTeleportFast = false
+		StepTeleportToBase(385) -- step size updated
 	end
 end)
